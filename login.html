@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VideoShare — Login / Sign up</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background:#0b0b0f; color:#e7e7ea; display:grid; place-items:center; min-height:100vh;}
+    .wrap { width: min(480px, 92vw); background:#12121a; border:1px solid #1f1f2a; border-radius:16px; padding:24px;}
+    input, button { width:100%; padding:12px; border-radius:8px; border:1px solid #2a2a38; background:#0c0c12; color:#e7e7ea; }
+    button { background:#1c1c2a; cursor:pointer; }
+    .row { display:grid; gap:12px; margin-bottom:16px; }
+    a { color:#a9b7ff; text-decoration:none; }
+    .tabs { display:flex; margin-bottom:16px; border-bottom:1px solid #1f1f2a;}
+    .tabs a { padding:10px 12px; }
+    .tabs a.active { border-bottom:2px solid #a9b7ff; }
+    .muted { color:#a4a4ad; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="tabs">
+      <a href="#login" id="tabLogin" class="active">Login</a>
+      <a href="#signup" id="tabSignup">Sign up</a>
+    </div>
+    <div id="loginForm">
+      <div class="row"><input id="loginEmail" placeholder="Email" type="email" autocomplete="username"/></div>
+      <div class="row"><input id="loginPassword" placeholder="Password" type="password" autocomplete="current-password"/></div>
+      <div class="row"><button onclick="doLogin()">Login</button></div>
+    </div>
+    <div id="signupForm" style="display:none">
+      <div class="row"><input id="suName" placeholder="Full name" /></div>
+      <div class="row"><input id="suEmail" placeholder="Email" type="email" autocomplete="username"/></div>
+      <div class="row"><input id="suPassword" placeholder="Password" type="password" autocomplete="new-password"/></div>
+      <div class="row"><button onclick="doSignup()">Create account</button></div>
+      <p class="muted">Already have an account? <a href="#login" onclick="show('login')">Login</a></p>
+    </div>
+    <p class="muted">You'll be redirected back to the homepage when done.</p>
+  </div>
+
+  <script src="web/auth.js"></script>
+  <script>
+    const API = (localStorage.getItem('API_BASE') || window.location.origin.replace(/:\d+$/, ':8000'));
+
+    function show(which){
+      const login = document.getElementById('loginForm');
+      const signup = document.getElementById('signupForm');
+      const tl = document.getElementById('tabLogin');
+      const ts = document.getElementById('tabSignup');
+      if (which === 'signup') {
+        login.style.display = 'none'; signup.style.display = 'block';
+        tl.classList.remove('active'); ts.classList.add('active');
+      } else {
+        signup.style.display = 'none'; login.style.display = 'block';
+        ts.classList.remove('active'); tl.classList.add('active');
+      }
+    }
+
+    window.addEventListener('hashchange', () => {
+      show(location.hash.replace('#','') || 'login');
+    });
+    show(location.hash.replace('#','') || 'login');
+
+    async function doLogin(){
+      const email = (document.getElementById('loginEmail').value || '').trim();
+      const password = document.getElementById('loginPassword').value;
+      try {
+        const form = new URLSearchParams();
+        form.set('username', email);
+        form.set('password', password);
+        const res = await fetch(API + '/auth/login', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: form });
+        if (!res.ok) throw new Error((await res.json()).detail || 'Login failed');
+        const data = await res.json();
+        Auth.saveToken(data);
+        location.href = 'index.html';
+      } catch (e) { alert(e.message); }
+    }
+
+    async function doSignup(){
+      const name = document.getElementById('suName').value.trim();
+      const email = document.getElementById('suEmail').value.trim();
+      const password = document.getElementById('suPassword').value;
+      try {
+        const res = await fetch(API + '/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, email, password}) });
+        if (!res.ok) throw new Error((await res.json()).detail || 'Sign up failed');
+        // auto-login
+        const form = new URLSearchParams();
+        form.set('username', email);
+        form.set('password', password);
+        const res2 = await fetch(API + '/auth/login', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: form });
+        const data = await res2.json();
+        Auth.saveToken(data);
+        location.href = 'index.html';
+      } catch (e) { alert(e.message); }
+    }
+  </script>
+</body>
+</html>

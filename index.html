@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VideoShare — Latest</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; background:#0b0b0f; color:#e7e7ea;}
+    header { display:flex; align-items:center; gap:12px; padding:16px; border-bottom:1px solid #1f1f2a; position:sticky; top:0; background:#0b0b0f;}
+    input, button { padding:10px 12px; border-radius:8px; border:1px solid #2a2a38; background:#12121a; color:#e7e7ea;}
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:16px; padding:16px;}
+    .card { background:#12121a; border:1px solid #1f1f2a; border-radius:16px; padding:12px; }
+    a { color:#a9b7ff; text-decoration:none; }
+    .brand { font-weight:700; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">VideoShare</span>
+    <input id="search" placeholder="Search titles or genres..." />
+    <button onclick="doSearch()">Search</button>
+    <div style="margin-left:auto">
+      <a href="login.html">Login</a> · <a href="creator.html">Creator</a>
+    </div>
+  </header>
+  <div class="grid" id="grid"></div>
+  <script>
+    const API = (localStorage.getItem('API_BASE') || window.location.origin.replace(/:\d+$/, ':8000'));
+    async function loadLatest() {
+      const res = await fetch(API + '/videos/latest');
+      const data = await res.json();
+      render(data);
+    }
+    function render(items) {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      items.forEach(v => {
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.innerHTML = `
+          <h3>${v.title}</h3>
+          <div>${v.genre} · Rating ${v.avg_rating ?? 0}</div>
+          <div>Publisher: ${v.publisher}</div>
+          <a href="video.html?id=${v.id}">Watch</a>
+        `;
+        grid.appendChild(el);
+      });
+    }
+    async function doSearch() {
+      const q = document.getElementById('search').value;
+      const res = await fetch(API + '/videos?q=' + encodeURIComponent(q));
+      const data = await res.json();
+      render(data);
+    }
+    loadLatest();
+  </script>
+</body>
+</html>
